@@ -112,9 +112,9 @@ Server::Server(QWidget *parent)
 
 
         connect(quitButton, SIGNAL(clicked()), this, SLOT(close()));
-    //! [3]
+
         connect(tcpServer, SIGNAL(newConnection()), this, SLOT(setupCon()));
-    //! [3]
+
 
         QHBoxLayout *buttonLayout = new QHBoxLayout;
         buttonLayout->addStretch(10);
@@ -163,7 +163,7 @@ void Server::sessionOpened()
         settings.endGroup();
     }
 
-//! [0] //! [1]
+
     tcpServer = new QTcpServer(this);
     if (!tcpServer->listen(QHostAddress::Any, 8100)) {
         QMessageBox::critical(this, tr("Test Server"),
@@ -172,7 +172,7 @@ void Server::sessionOpened()
         close();
         return;
     }
-//! [0]
+
     QString ipAddress;
     QList<QHostAddress> ipAddressesList = QNetworkInterface::allAddresses();
     // use the first non-localhost IPv4 address
@@ -189,10 +189,10 @@ void Server::sessionOpened()
     statusLabel->setText(tr("The server is running on\n\nIP: %1\nport: %2\n\n"
                             "Run the MAP GUI now.")
                          .arg(ipAddress).arg(tcpServer->serverPort()));
-//! [1]
+
 }
 
-//! [4]
+
 void Server::setupCon()
 {
     clientConnection = tcpServer->nextPendingConnection();
@@ -204,7 +204,7 @@ void Server::setupCon()
     connect(clientConnection, SIGNAL(readyRead()), this, SLOT(replyComm()));
 
 }
-//! [8]
+
 void Server::replyComm()
 {
     QString inComm;
