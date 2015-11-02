@@ -44,6 +44,7 @@
 #include <QDialog>
 #include <QHash>
 #include<QtNetwork>
+#include <QtGui>
 
 QT_BEGIN_NAMESPACE
 class QLabel;
@@ -68,7 +69,9 @@ public:
 private slots:
     void sessionOpened();
     void setupCon();
+    void setupConc1();
     void replyComm();
+    void replyCommc1();
     void sendComm();
     void clickSend();
     void connectServerError(QAbstractSocket::SocketError err);
@@ -82,12 +85,13 @@ private:
     QLineEdit *port;
     QComboBox *commandText;
     QLineEdit *paraComm;
-    QTcpServer *tcpServer;
+    QTcpServer *tcpServer,*tcpServerc1;
     QNetworkSession *networkSession;
-    QTcpSocket *clientConnection;
+    QTcpSocket *clientConnection, *clientConnectionc1;
     QTcpSocket *serverConnection;
     quint8 blockSize;
-    QHash<QString, QString> commReply;
+    QHash<QString, QString> commReply, commReplyc1;
+
 
 };
 //! [0]

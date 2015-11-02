@@ -114,6 +114,7 @@ Server::Server(QWidget *parent)
         connect(quitButton, SIGNAL(clicked()), this, SLOT(close()));
 
         connect(tcpServer, SIGNAL(newConnection()), this, SLOT(setupCon()));
+        connect(tcpServerc1, SIGNAL(newConnection()), this, SLOT(setupConc1()));
 
 
         QHBoxLayout *buttonLayout = new QHBoxLayout;
@@ -140,10 +141,18 @@ Server::Server(QWidget *parent)
         commReply.insert(":ETHERNET:NAME?", "Local, MAP20");
         commReply.insert(":ETHERNET:PROPERTY? 0", "Local,127.0.0.1,255.255.255.0,127.0.0.1,Test,127.0.0.1,127.0.0.1");
         commReply.insert(":ETHERNET:PROPERTY? 1", "Local,127.0.0.1,255.255.255.0,127.0.0.1,Test,127.0.0.1,127.0.0.1");
+        commReply.insert(":PROC:CARD?", "1 136 8801,2 65505 0");
+
+        commReplyc1.insert(":IDN?", "0,FFL,888,1");
+        commReplyc1.insert(":config?", "1 2 3 4 5 6 7 8 9 10 11 12 12 13 14");
+        commReplyc1.insert(":info?", "1,2,3,4,5,6,7,8,9 10 11 12 12 13 14");
+        commReplyc1.insert(":proc:ndev?", "1");
+
+
+
 
 
 }
-
 
 
 void Server::sessionOpened()
@@ -169,6 +178,14 @@ void Server::sessionOpened()
         QMessageBox::critical(this, tr("Test Server"),
                               tr("Unable to start the server: %1.")
                               .arg(tcpServer->errorString()));
+        close();
+        return;
+    }
+    tcpServerc1 = new QTcpServer(this);
+    if (!tcpServerc1->listen(QHostAddress::Any, 8801)) {
+        QMessageBox::critical(this, tr("Test Server"),
+                              tr("Unable to start the server: %1.")
+                              .arg(tcpServerc1->errorString()));
         close();
         return;
     }
@@ -204,6 +221,54 @@ void Server::setupCon()
     connect(clientConnection, SIGNAL(readyRead()), this, SLOT(replyComm()));
 
 }
+
+void Server::setupConc1()
+{
+    clientConnectionc1 = tcpServerc1->nextPendingConnection();
+    clientConnectionc1->setSocketOption(QAbstractSocket::LowDelayOption, QVariant(1));
+    clientConnectionc1->setSocketOption(QAbstractSocket::KeepAliveOption, QVariant(1));
+
+    connect(clientConnectionc1, SIGNAL(disconnected()),
+            clientConnectionc1, SLOT(deleteLater()));
+    connect(clientConnectionc1, SIGNAL(readyRead()), this, SLOT(replyCommc1()));
+    qDebug()<<"card connected";
+
+}
+void Server::replyCommc1()
+{
+    QString inComm;
+    QByteArray outReply;
+    static int count=0;
+    qDebug()<<"cout is" <<count++;
+    blockSize = 1;
+    if (clientConnectionc1->bytesAvailable() < blockSize)
+    {
+        return;
+    }else
+    {   qDebug()<<"data length"<<clientConnectionc1->bytesAvailable();
+        inComm = clientConnectionc1->readLine();
+        qDebug()<<"readline length"<<inComm.length();
+        qDebug()<<"before trim receive is "<< inComm;
+        inComm = inComm.trimmed();
+        qDebug()<<"after trim receive is"<< inComm;
+        qDebug()<<"after trim is "<<inComm.length();
+    }
+    if (inComm.contains("PROC:ID WM", Qt::CaseInsensitive))
+    {
+        //connectHost;
+        return;
+    }
+    else if (commReplyc1.contains(inComm))
+    {
+        outReply.append(commReplyc1.value(inComm)+"\n");
+    }
+    else
+    {
+        outReply.append("\n");
+    }
+    clientConnectionc1->write(outReply);
+}
+
 
 void Server::replyComm()
 {
