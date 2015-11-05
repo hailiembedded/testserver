@@ -112,10 +112,14 @@ Server::Server(QWidget *parent)
 
 
         connect(quitButton, SIGNAL(clicked()), this, SLOT(close()));
-    //! [3]
+
         connect(tcpServer, SIGNAL(newConnection()), this, SLOT(setupCon()));
+
         connect(tcpCardServer, SIGNAL(newConnection()), this, SLOT(setupConCard()));
-    //! [3]
+
+        connect(tcpServerc1, SIGNAL(newConnection()), this, SLOT(setupConc1()));
+
+
 
         QHBoxLayout *buttonLayout = new QHBoxLayout;
         buttonLayout->addStretch(10);
@@ -144,7 +148,7 @@ Server::Server(QWidget *parent)
         commReply.insert(":SYST:ETH:MAC?", "AA:BB:CC:DD");
         commReply.insert("isu:etal:vhard?", "10");
         commReply.insert("PROC:LIC:STATUS?","VALID");
-
+        commReply.insert(":PROC:CARD?", "1 136 8801,2 65505 0");
 
         cardReply.insert(":idn?", "pad,EDFA,pad,0.0.1");
         cardReply.insert(":proc:ndev?", "1");
@@ -156,14 +160,12 @@ Server::Server(QWidget *parent)
         cardReply.insert(":lock?","0,OA ,local ," );
 
 
-
-
-
-
-
+        commReplyc1.insert(":IDN?", "0,FFL,888,1");
+        commReplyc1.insert(":config?", "1 2 3 4 5 6 7 8 9 10 11 12 12 13 14");
+        commReplyc1.insert(":info?", "1,2,3,4,5,6,7,8,9 10 11 12 12 13 14");
+        commReplyc1.insert(":proc:ndev?", "1");
 
 }
-
 
 
 void Server::sessionOpened()
@@ -183,7 +185,7 @@ void Server::sessionOpened()
         settings.endGroup();
     }
 
-//! [0] //! [1]
+
     tcpServer = new QTcpServer(this);
 //    if (!tcpServer->listen(QHostAddress::Any, 8100)) {
 //        QMessageBox::critical(this, tr("Test Server"),
@@ -196,12 +198,21 @@ void Server::sessionOpened()
         close();
         return;
     }
-//! [0]
+
     tcpCardServer = new QTcpServer(this);
     if (!tcpCardServer->listen(QHostAddress::Any, 8201)) {
         QMessageBox::critical(this, tr("Test Server"),
                               tr("Unable to start the server: %1.")
                               .arg(tcpCardServer->errorString()));
+    close();
+    return;
+    }
+
+    tcpServerc1 = new QTcpServer(this);
+    if (!tcpServerc1->listen(QHostAddress::Any, 8801)) {
+        QMessageBox::critical(this, tr("Test Server"),
+                              tr("Unable to start the server: %1.")
+                              .arg(tcpServerc1->errorString()));
         close();
         return;
     }
@@ -222,10 +233,10 @@ void Server::sessionOpened()
     statusLabel->setText(tr("The server is running on\n\nIP: %1\nport: %2\n\n"
                             "Run the MAP GUI now.")
                          .arg(ipAddress).arg(tcpServer->serverPort()));
-//! [1]
+
 }
 
-//! [4]
+
 void Server::setupCon()
 {
     clientConnection = tcpServer->nextPendingConnection();
@@ -238,6 +249,7 @@ void Server::setupCon()
 
 }
 
+
 void Server::setupConCard()
 {
     cardConnection = tcpCardServer->nextPendingConnection();
@@ -248,7 +260,56 @@ void Server::setupConCard()
             cardConnection, SLOT(deleteLater()));
     connect(cardConnection, SIGNAL(readyRead()), this, SLOT(replyCommCard()));
 }
-//! [8]
+
+void Server::setupConc1()
+{
+    clientConnectionc1 = tcpServerc1->nextPendingConnection();
+    clientConnectionc1->setSocketOption(QAbstractSocket::LowDelayOption, QVariant(1));
+    clientConnectionc1->setSocketOption(QAbstractSocket::KeepAliveOption, QVariant(1));
+
+    connect(clientConnectionc1, SIGNAL(disconnected()),
+            clientConnectionc1, SLOT(deleteLater()));
+    connect(clientConnectionc1, SIGNAL(readyRead()), this, SLOT(replyCommc1()));
+    qDebug()<<"card connected";
+
+}
+void Server::replyCommc1()
+{
+    QString inComm;
+    QByteArray outReply;
+    static int count=0;
+    qDebug()<<"cout is" <<count++;
+    blockSize = 1;
+    if (clientConnectionc1->bytesAvailable() < blockSize)
+    {
+        return;
+    }else
+    {   qDebug()<<"data length"<<clientConnectionc1->bytesAvailable();
+        inComm = clientConnectionc1->readLine();
+        qDebug()<<"readline length"<<inComm.length();
+        qDebug()<<"before trim receive is "<< inComm;
+        inComm = inComm.trimmed();
+        qDebug()<<"after trim receive is"<< inComm;
+        qDebug()<<"after trim is "<<inComm.length();
+    }
+    if (inComm.contains("PROC:ID WM", Qt::CaseInsensitive))
+    {
+        //connectHost;
+        return;
+    }
+    else if (commReplyc1.contains(inComm))
+    {
+        outReply.append(commReplyc1.value(inComm)+"\n");
+    }
+    else
+    {
+        outReply.append("\n");
+    }
+    clientConnectionc1->write(outReply);
+}
+
+
+
 void Server::replyComm()
 {
     QString inComm;

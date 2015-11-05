@@ -48,10 +48,12 @@
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
+    qCritical() << "Main:current stack siz " << app.thread()->stackSize();
     Server server;
 #ifdef Q_OS_SYMBIAN
     server.showMaximized();
 #else
+    qCritical() << "sizeof Server siz " << sizeof(Server);
     server.show();
 #endif
     qsrand(QTime(0,0,0).secsTo(QTime::currentTime()));
