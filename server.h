@@ -73,6 +73,8 @@ private slots:
     void clickSend();
     void connectServerError(QAbstractSocket::SocketError err);
     void serverResponse();
+    void setupConCard();
+    void replyCommCard();
 
 private:
     QLabel *statusLabel;
@@ -83,11 +85,14 @@ private:
     QComboBox *commandText;
     QLineEdit *paraComm;
     QTcpServer *tcpServer;
+    QTcpServer *tcpCardServer;
     QNetworkSession *networkSession;
+    QTcpSocket *tcpCard;
     QTcpSocket *clientConnection;
     QTcpSocket *serverConnection;
+    QTcpSocket *cardConnection;
     quint8 blockSize;
-    QHash<QString, QString> commReply;
+    QHash<QString, QString> commReply, cardReply;
 
 };
 //! [0]
