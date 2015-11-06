@@ -42,14 +42,111 @@
 #include <QtNetwork>
 
 #include <stdlib.h>
+#include <QHBoxLayout>
 
 #include "unistd.h"
 #include "server.h"
+
+char AtoBinary(char data_in)
+{
+    char data_out;
+
+    if((data_in <= '9') && (data_in >= '0'))
+    {
+        data_out = data_in - '0';
+    }
+    else
+    {
+        data_out = data_in + 10 - 'A';
+    }
+
+    return data_out;
+}
+typedef union floatIntChange
+{
+    unsigned char fchar[4];
+    float ffloat;
+    int fint;
+}floatIntChange;
+
+typedef union boolChange
+{
+    bool fbool;
+    unsigned char fchar;
+}boolChange;
+
+void floatIntToChar(char * target, floatIntChange source)
+{
+
+    char temp;
+    for (int i =0; i<=3;i++)
+    {
+        temp =source.fchar[i]&0x0F;
+        if (temp>=0&& temp<=9)
+            target[i*2+1] = temp+'0';
+        else
+            target[i*2+1] = temp - 10 + 'A';
+        temp = source.fchar[i]>>4;
+        if (temp>=0 && temp<=9)
+            target[i*2] = temp+'0';
+        else
+            target[i*2] = temp - 10 + 'A';
+    }
+}
+
+void BoolToChar(char * target, boolChange source)
+{
+
+    char temp;
+
+    temp =source.fchar&0x0F;
+    if (temp>=0&& temp<=9)
+        target[1] = temp+'0';
+    else
+        target[1] = temp - 10 + 'A';
+    temp = source.fchar>>4;
+    if (temp>=0 && temp<=9)
+        target[0] = temp+'0';
+    else
+        target[0] = temp - 10 + 'A';
+
+}
+
+
 
 
 Server::Server(QWidget *parent)
 :   QDialog(parent), tcpServer(0), networkSession(0)
 {
+
+    QString profile;
+    char profileData[sizeof(OA_Profile_t)*2];
+
+    testProfile.laser_source_status = false;			// laser source status
+    testProfile.mode = 3;//constant power/current/gain mode
+    testProfile.out_current_min = -100.5;
+    testProfile.out_current_max = 100.5;
+    testProfile.gain_min = -10.5;
+    testProfile.gain_max = 10.5;
+    testProfile.power_min = -23;
+    testProfile.power_max = 27.8;
+    testProfile.gain_threshold = 439.9;
+    testProfile.gain_accuracy = 34.50;
+    testProfile.output_power = 14.5;
+    testProfile.output_power_threshold = 120.56;
+    testProfile.output_power_accuracy = 12.6;
+    testProfile.ALS_enable = true;
+    testProfile.LOS_threshold = 98.9;
+    testProfile.optical_power_value = 369.5;
+    testProfile.optical_output_power_value = 96.7;
+    testProfile.wav_length = 100.5;
+    testProfile.ATI = 125.9;
+
+    char temp;
+    qDebug()<<"alignment"<<__alignof__(testProfile) <<"size of "<<sizeof(testProfile);
+
+
+
     statusLabel = new QLabel;
     quitButton = new QPushButton(tr("Quit"));
     sendButton = new QPushButton(tr("Send"));
@@ -150,20 +247,20 @@ Server::Server(QWidget *parent)
         commReply.insert("PROC:LIC:STATUS?","VALID");
         commReply.insert(":PROC:CARD?", "1 136 8801,2 65505 0");
 
-        cardReply.insert(":idn?", "pad,EDFA,pad,0.0.1");
-        cardReply.insert(":proc:ndev?", "1");
-        cardReply.insert(":config?","1 EDFA 888.88 10.5 20.5 100.1 200.1 25.5 30.5 50.5 60.5 1.2 2.5 10.1 15.2 yes yes yes yes");
-        cardReply.insert(":info?", "ABCDEF,LUCK,0.0.1,pad,pad,pad,pad,pad");
-        cardReply.insert(":proc:prof? 1","" );
-        cardReply.insert(":proc:license:list?","0" );
-        cardReply.insert(":lock?","0,OA ,local ," );
-        cardReply.insert(":lock?","0,OA ,local ," );
 
 
         commReplyc1.insert(":IDN?", "0,FFL,888,1");
         commReplyc1.insert(":config?", "1 2 3 4 5 6 7 8 9 10 11 12 12 13 14");
         commReplyc1.insert(":info?", "1,2,3,4,5,6,7,8,9 10 11 12 12 13 14");
         commReplyc1.insert(":proc:ndev?", "1");
+
+        cardReply.insert(":idn?", "pad,EDFA,pad,0.0.1");
+        cardReply.insert(":proc:ndev?", "1");
+        cardReply.insert(":config?","1 EDFA 888.88 10.5 20.5 100.1 200.1 25.5 30.5 50.5 60.5 1.2 2.5 10.1 15.2 yes yes yes yes");
+        cardReply.insert(":info?", "ABCDEF,LUCK,0.0.1,pad,pad,pad,pad,pad");
+        cardReply.insert(":proc:prof? 1","00300144" );
+        cardReply.insert(":proc:license:list?","0" );
+        cardReply.insert(":lock?","0,OA ,local ," );
 
 }
 
@@ -281,13 +378,11 @@ void Server::replyCommc1()
     {
         return;
     }else
-    {   qDebug()<<"data length"<<clientConnectionc1->bytesAvailable();
+    {
         inComm = clientConnectionc1->readLine();
-        qDebug()<<"readline length"<<inComm.length();
-        qDebug()<<"before trim receive is "<< inComm;
         inComm = inComm.trimmed();
         qDebug()<<"after trim receive is"<< inComm;
-        qDebug()<<"after trim is "<<inComm.length();
+
     }
     if (inComm.contains("PROC:ID WM", Qt::CaseInsensitive))
     {
@@ -322,7 +417,6 @@ void Server::replyComm()
         inComm = clientConnection->readAll();
         inComm = inComm.trimmed();
         qDebug()<<"after trim receive is"<< inComm;
-        qDebug()<<"after trim is "<<inComm.length();
     }
     if (inComm.contains("PROC:ID WM", Qt::CaseInsensitive))
     {
@@ -419,7 +513,6 @@ void Server::replyCommCard()
         inComm = cardConnection->readAll();
         inComm = inComm.trimmed();
         qDebug()<<"from card after trim receive is"<< inComm;
-        qDebug()<<"from card after trim is "<<inComm.length();
     }
     if (inComm.contains("PROC:ID WM", Qt::CaseInsensitive))
     {
