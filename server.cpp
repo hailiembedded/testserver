@@ -136,7 +136,7 @@ Server::Server(QWidget *parent)
         mainLayout->addWidget(quitButton);
         setLayout(mainLayout);
 
-        setWindowTitle(tr("Test Server"));
+        setWindowTitle(tr("EDFA Simulate Server"));
 
 
         commReply.insert("*IDN?", "JDSU,MAP-200,888,1.01");
