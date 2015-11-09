@@ -75,6 +75,33 @@ typedef union boolChange
     unsigned char fchar;
 }boolChange;
 
+typedef union wholeChange
+{
+    unsigned char fchar[sizeof(OA_Profile_t)*2];
+    OA_Profile_t fOAProfile;
+
+}wholeChange;
+
+
+void profileTochar(char * target, wholeChange source)
+{
+    char temp;
+    for (int i =0; i<=sizeof(OA_Profile_t);i++)
+    {
+        temp =source.fchar[i]&0x0F;
+        if (temp>=0&& temp<=9)
+            target[i*2+1] = temp+'0';
+        else
+            target[i*2+1] = temp - 10 + 'A';
+        temp = source.fchar[i]>>4;
+        if (temp>=0 && temp<=9)
+            target[i*2] = temp+'0';
+        else
+            target[i*2] = temp - 10 + 'A';
+    }
+
+}
+
 void floatIntToChar(char * target, floatIntChange source)
 {
 
@@ -92,9 +119,9 @@ void floatIntToChar(char * target, floatIntChange source)
         else
             target[i*2] = temp - 10 + 'A';
     }
-}
+}//8 byte for a float or int
 
-void BoolToChar(char * target, boolChange source)
+void boolToChar(char * target, boolChange source)
 {
 
     char temp;
@@ -110,7 +137,7 @@ void BoolToChar(char * target, boolChange source)
     else
         target[0] = temp - 10 + 'A';
 
-}
+}//2 byte for a bool
 
 
 
@@ -120,7 +147,9 @@ Server::Server(QWidget *parent)
 {
 
     QString profile;
-    char profileData[sizeof(OA_Profile_t)*2];
+    char profileData[sizeof(OA_Profile_t)*2+1] = {'\0'};
+    floatIntChange tempFloatInt;
+    boolChange tempBool;
 
     testProfile.laser_source_status = false;			// laser source status
     testProfile.mode = 3;//constant power/current/gain mode
@@ -142,8 +171,21 @@ Server::Server(QWidget *parent)
     testProfile.wav_length = 100.5;
     testProfile.ATI = 125.9;
 
-    char temp;
-    qDebug()<<"alignment"<<__alignof__(testProfile) <<"size of "<<sizeof(testProfile);
+//    char boolConvert[2];
+//    char intFloatConvert[8];
+//    tempBool.fbool = testProfile.laser_source_status;
+//    boolToChar(boolConvert, tempBool);
+//    strncat(profileData, boolConvert, 2);
+    wholeChange testWhole;
+    testWhole.fOAProfile = testProfile;
+    profileTochar(profileData, testWhole);
+
+    profileData[sizeof(OA_Profile_t)*2] = '\0';
+    qDebug() << "strlen (profileDate)"<< strlen(profileData);
+
+    profile.append("1234567890");
+    profile.append(profileData);
+
 
 
 
@@ -258,7 +300,7 @@ Server::Server(QWidget *parent)
         cardReply.insert(":proc:ndev?", "1");
         cardReply.insert(":config?","1 EDFA 888.88 10.5 20.5 100.1 200.1 25.5 30.5 50.5 60.5 1.2 2.5 10.1 15.2 yes yes yes yes");
         cardReply.insert(":info?", "ABCDEF,LUCK,0.0.1,pad,pad,pad,pad,pad");
-        cardReply.insert(":proc:prof? 1","00300144" );
+        cardReply.insert(":proc:prof? 1", profile );
         cardReply.insert(":proc:license:list?","0" );
         cardReply.insert(":lock?","0,OA ,local ," );
 

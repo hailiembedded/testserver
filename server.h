@@ -87,6 +87,32 @@ QT_END_NAMESPACE
 //! [0]
 >>>>>>> 90ba0e9c01b2d792fbd3717ee1ea9a12007f2cdf
 */
+
+typedef struct __attribute__((__packed__))
+{
+    bool	laser_source_status;			// laser source status
+    unsigned char    mode;                           //constant power/current/gain mode
+    float    out_current_min;
+    float   out_current_max;
+    float   gain_min;
+    float   gain_max;
+    float   power_min;
+    float   power_max;
+    float   gain_threshold;
+    float   gain_accuracy;
+    float   output_power;
+    float   output_power_threshold;
+    float   output_power_accuracy;
+    bool    ALS_enable;
+    float   LOS_threshold;
+    float   optical_power_value;
+    float   optical_output_power_value;
+    float   wav_length;
+    float   ATI;
+
+
+}OA_Profile_t;
+
 class Server : public QDialog
 {
     Q_OBJECT
@@ -97,30 +123,7 @@ public:
     Server(QWidget *parent = 0);
 
 
-    typedef struct
-    {
-        bool	laser_source_status;			// laser source status
-        unsigned char    mode;                           //constant power/current/gain mode
-        float    out_current_min;
-        float   out_current_max;
-        float   gain_min;
-        float   gain_max;
-        float   power_min;
-        float   power_max;
-        float   gain_threshold;
-        float   gain_accuracy;
-        float   output_power;
-        float   output_power_threshold;
-        float   output_power_accuracy;
-        bool    ALS_enable;
-        float   LOS_threshold;
-        float   optical_power_value;
-        float   optical_output_power_value;
-        float   wav_length;
-        float   ATI;
 
-
-    }OA_Profile_t;
 
 private slots:
     void sessionOpened();
