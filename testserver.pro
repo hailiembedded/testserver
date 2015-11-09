@@ -1,3 +1,4 @@
+CONFIG += 	qt release 
 HEADERS       = server.h \
     serverclient.h
 SOURCES       = server.cpp \

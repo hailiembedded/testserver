@@ -47,21 +47,6 @@
 #include "unistd.h"
 #include "server.h"
 
-char AtoBinary(char data_in)
-{
-    char data_out;
-
-    if((data_in <= '9') && (data_in >= '0'))
-    {
-        data_out = data_in - '0';
-    }
-    else
-    {
-        data_out = data_in + 10 - 'A';
-    }
-
-    return data_out;
-}
 typedef union floatIntChange
 {
     unsigned char fchar[4];
@@ -85,11 +70,11 @@ typedef union wholeChange
 
 void profileTochar(char * target, wholeChange source)
 {
-    char temp;
-    for (int i =0; i<=sizeof(OA_Profile_t);i++)
+    char temp = 0;
+    for (unsigned int i =0; i<sizeof(OA_Profile_t);i++)
     {
         temp =source.fchar[i]&0x0F;
-        if (temp>=0&& temp<=9)
+        if (temp>=0 && temp<=9)
             target[i*2+1] = temp+'0';
         else
             target[i*2+1] = temp - 10 + 'A';
@@ -143,13 +128,11 @@ void boolToChar(char * target, boolChange source)
 
 
 Server::Server(QWidget *parent)
-:   QDialog(parent), tcpServer(0), networkSession(0)
+    :   QDialog(parent), tcpServer(0), networkSession(0)
 {
 
     QString profile;
     char profileData[sizeof(OA_Profile_t)*2+1] = {'\0'};
-    floatIntChange tempFloatInt;
-    boolChange tempBool;
 
     testProfile.laser_source_status = false;			// laser source status
     testProfile.mode = 3;//constant power/current/gain mode
@@ -171,20 +154,20 @@ Server::Server(QWidget *parent)
     testProfile.wav_length = 100.5;
     testProfile.ATI = 125.9;
 
-//    char boolConvert[2];
-//    char intFloatConvert[8];
-//    tempBool.fbool = testProfile.laser_source_status;
-//    boolToChar(boolConvert, tempBool);
-//    strncat(profileData, boolConvert, 2);
+
+
     wholeChange testWhole;
     testWhole.fOAProfile = testProfile;
     profileTochar(profileData, testWhole);
 
-    profileData[sizeof(OA_Profile_t)*2] = '\0';
     qDebug() << "strlen (profileDate)"<< strlen(profileData);
+    qDebug() << "sizeof (profileDate)"<< sizeof(OA_Profile_t);
+    qDebug() << "sizeof (whole)"<< sizeof(wholeChange);
 
     profile.append("1234567890");
+
     profile.append(profileData);
+
 
 
 
@@ -235,7 +218,7 @@ Server::Server(QWidget *parent)
         // If the saved network configuration is not currently discovered use the system default
         QNetworkConfiguration config = manager.configurationFromIdentifier(id);
         if ((config.state() & QNetworkConfiguration::Discovered) !=
-            QNetworkConfiguration::Discovered) {
+                QNetworkConfiguration::Discovered) {
             config = manager.defaultConfiguration();
         }
 
@@ -250,59 +233,59 @@ Server::Server(QWidget *parent)
 
 
 
-        connect(quitButton, SIGNAL(clicked()), this, SLOT(close()));
+    connect(quitButton, SIGNAL(clicked()), this, SLOT(close()));
 
-        connect(tcpServer, SIGNAL(newConnection()), this, SLOT(setupCon()));
+    connect(tcpServer, SIGNAL(newConnection()), this, SLOT(setupCon()));
 
-        connect(tcpCardServer, SIGNAL(newConnection()), this, SLOT(setupConCard()));
+    connect(tcpCardServer, SIGNAL(newConnection()), this, SLOT(setupConCard()));
 
-        connect(tcpServerc1, SIGNAL(newConnection()), this, SLOT(setupConc1()));
-
-
-
-        QHBoxLayout *buttonLayout = new QHBoxLayout;
-        buttonLayout->addStretch(10);
-        buttonLayout->addWidget(ip);
-        buttonLayout->addWidget(port);
-        buttonLayout->addWidget(commandText);
-        buttonLayout->addWidget(paraComm);
-        buttonLayout->addWidget(sendButton);
-        buttonLayout->addStretch(1);
-
-        QVBoxLayout *mainLayout = new QVBoxLayout;
-        mainLayout->addWidget(statusLabel);
-        mainLayout->addLayout(buttonLayout);
-        mainLayout->addWidget(quitButton);
-        setLayout(mainLayout);
-
-        setWindowTitle(tr("EDFA Simulate Server"));
-
-
-        commReply.insert("*IDN?", "JDSU,MAP-200,888,1.01");
-        commReply.insert(":SYST:IP:LIST?", "0,127.0.0.1, Local");
-        commReply.insert(":ETHERNET:MODE?", "2");
-        commReply.insert(":ETHERNET:NAME?", "Local, MAP20");
-        commReply.insert(":ETHERNET:PROPERTY? 0", "Local,127.0.0.1,255.255.255.0,127.0.0.1,Test,127.0.0.1,127.0.0.1");
-        commReply.insert(":ETHERNET:PROPERTY? 1", "Local,127.0.0.1,255.255.255.0,127.0.0.1,Test,127.0.0.1,127.0.0.1");
-        commReply.insert(":SYST:ETH:MAC?", "AA:BB:CC:DD");
-        commReply.insert("isu:etal:vhard?", "10");
-        commReply.insert("PROC:LIC:STATUS?","VALID");
-        commReply.insert(":PROC:CARD?", "1 136 8801,2 65505 0");
+    //        connect(tcpServerc1, SIGNAL(newConnection()), this, SLOT(setupConc1()));
 
 
 
-        commReplyc1.insert(":IDN?", "0,FFL,888,1");
-        commReplyc1.insert(":config?", "1 2 3 4 5 6 7 8 9 10 11 12 12 13 14");
-        commReplyc1.insert(":info?", "1,2,3,4,5,6,7,8,9 10 11 12 12 13 14");
-        commReplyc1.insert(":proc:ndev?", "1");
+    QHBoxLayout *buttonLayout = new QHBoxLayout;
+    buttonLayout->addStretch(10);
+    buttonLayout->addWidget(ip);
+    buttonLayout->addWidget(port);
+    buttonLayout->addWidget(commandText);
+    buttonLayout->addWidget(paraComm);
+    buttonLayout->addWidget(sendButton);
+    buttonLayout->addStretch(1);
 
-        cardReply.insert(":idn?", "pad,EDFA,pad,0.0.1");
-        cardReply.insert(":proc:ndev?", "1");
-        cardReply.insert(":config?","1 EDFA 888.88 10.5 20.5 100.1 200.1 25.5 30.5 50.5 60.5 1.2 2.5 10.1 15.2 yes yes yes yes");
-        cardReply.insert(":info?", "ABCDEF,LUCK,0.0.1,pad,pad,pad,pad,pad");
-        cardReply.insert(":proc:prof? 1", profile );
-        cardReply.insert(":proc:license:list?","0" );
-        cardReply.insert(":lock?","0,OA ,local ," );
+    QVBoxLayout *mainLayout = new QVBoxLayout;
+    mainLayout->addWidget(statusLabel);
+    mainLayout->addLayout(buttonLayout);
+    mainLayout->addWidget(quitButton);
+    setLayout(mainLayout);
+
+    setWindowTitle(tr("EDFA Simulate Server"));
+
+
+    commReply.insert("*IDN?", "JDSU,MAP-200,888,1.01");
+    commReply.insert(":SYST:IP:LIST?", "0,127.0.0.1, Local");
+    commReply.insert(":ETHERNET:MODE?", "2");
+    commReply.insert(":ETHERNET:NAME?", "Local, MAP20");
+    commReply.insert(":ETHERNET:PROPERTY? 0", "Local,127.0.0.1,255.255.255.0,127.0.0.1,Test,127.0.0.1,127.0.0.1");
+    commReply.insert(":ETHERNET:PROPERTY? 1", "Local,127.0.0.1,255.255.255.0,127.0.0.1,Test,127.0.0.1,127.0.0.1");
+    commReply.insert(":SYST:ETH:MAC?", "AA:BB:CC:DD");
+    commReply.insert("isu:etal:vhard?", "10");
+    commReply.insert("PROC:LIC:STATUS?","VALID");
+    commReply.insert(":PROC:CARD?", "1 136 8801,2 65505 0");
+
+
+
+    //        commReplyc1.insert(":IDN?", "0,FFL,888,1");
+    //        commReplyc1.insert(":config?", "1 2 3 4 5 6 7 8 9 10 11 12 12 13 14");
+    //        commReplyc1.insert(":info?", "1,2,3,4,5,6,7,8,9 10 11 12 12 13 14");
+    //        commReplyc1.insert(":proc:ndev?", "1");
+
+    cardReply.insert(":idn?", "pad,EDFA,pad,0.0.1");
+    cardReply.insert(":proc:ndev?", "1");
+    cardReply.insert(":config?","1 EDFA 888.88 10.5 20.5 100.1 200.1 25.5 30.5 50.5 60.5 1.2 2.5 10.1 15.2 yes yes yes yes");
+    cardReply.insert(":info?", "ABCDEF,LUCK,0.0.1,pad,pad,pad,pad,pad");
+    cardReply.insert(":proc:prof? 1", profile );
+    cardReply.insert(":proc:license:list?","0" );
+    cardReply.insert(":lock?","0" );
 
 }
 
@@ -340,25 +323,25 @@ void Server::sessionOpened()
         QMessageBox::critical(this, tr("Test Server"),
                               tr("Unable to start the server: %1.")
                               .arg(tcpCardServer->errorString()));
-    close();
-    return;
-    }
-
-    tcpServerc1 = new QTcpServer(this);
-    if (!tcpServerc1->listen(QHostAddress::Any, 8801)) {
-        QMessageBox::critical(this, tr("Test Server"),
-                              tr("Unable to start the server: %1.")
-                              .arg(tcpServerc1->errorString()));
         close();
         return;
     }
+
+    //    tcpServerc1 = new QTcpServer(this);
+    //    if (!tcpServerc1->listen(QHostAddress::Any, 8801)) {
+    //        QMessageBox::critical(this, tr("Test Server"),
+    //                              tr("Unable to start the server: %1.")
+    //                              .arg(tcpServerc1->errorString()));
+    //        close();
+    //        return;
+    //    }
 
     QString ipAddress;
     QList<QHostAddress> ipAddressesList = QNetworkInterface::allAddresses();
     // use the first non-localhost IPv4 address
     for (int i = 0; i < ipAddressesList.size(); ++i) {
         if (ipAddressesList.at(i) != QHostAddress::LocalHost &&
-            ipAddressesList.at(i).toIPv4Address()) {
+                ipAddressesList.at(i).toIPv4Address()) {
             ipAddress = ipAddressesList.at(i).toString();
             break;
         }
@@ -388,6 +371,7 @@ void Server::setupCon()
 
 void Server::setupConCard()
 {
+    static int count = 0;
     cardConnection = tcpCardServer->nextPendingConnection();
     cardConnection->setSocketOption(QAbstractSocket::LowDelayOption, QVariant(1));
     cardConnection->setSocketOption(QAbstractSocket::KeepAliveOption, QVariant(1));
@@ -395,52 +379,51 @@ void Server::setupConCard()
     connect(cardConnection, SIGNAL(disconnected()),
             cardConnection, SLOT(deleteLater()));
     connect(cardConnection, SIGNAL(readyRead()), this, SLOT(replyCommCard()));
+    qDebug() << "setup Card "<< ++count;
 }
 
-void Server::setupConc1()
-{
-    clientConnectionc1 = tcpServerc1->nextPendingConnection();
-    clientConnectionc1->setSocketOption(QAbstractSocket::LowDelayOption, QVariant(1));
-    clientConnectionc1->setSocketOption(QAbstractSocket::KeepAliveOption, QVariant(1));
+//void Server::setupConc1()
+//{
+//    clientConnectionc1 = tcpServerc1->nextPendingConnection();
+//    clientConnectionc1->setSocketOption(QAbstractSocket::LowDelayOption, QVariant(1));
+//    clientConnectionc1->setSocketOption(QAbstractSocket::KeepAliveOption, QVariant(1));
 
-    connect(clientConnectionc1, SIGNAL(disconnected()),
-            clientConnectionc1, SLOT(deleteLater()));
-    connect(clientConnectionc1, SIGNAL(readyRead()), this, SLOT(replyCommc1()));
-    qDebug()<<"card connected";
+//    connect(clientConnectionc1, SIGNAL(disconnected()),
+//            clientConnectionc1, SLOT(deleteLater()));
+//    connect(clientConnectionc1, SIGNAL(readyRead()), this, SLOT(replyCommc1()));
+//    qDebug()<<"card connected";
 
-}
-void Server::replyCommc1()
-{
-    QString inComm;
-    QByteArray outReply;
-    static int count=0;
-    qDebug()<<"cout is" <<count++;
-    blockSize = 1;
-    if (clientConnectionc1->bytesAvailable() < blockSize)
-    {
-        return;
-    }else
-    {
-        inComm = clientConnectionc1->readLine();
-        inComm = inComm.trimmed();
-        qDebug()<<"after trim receive is"<< inComm;
+//}
+//void Server::replyCommc1()
+//{
+//    QString inComm;
+//    QByteArray outReply;
+//    blockSize = 1;
+//    if (clientConnectionc1->bytesAvailable() < blockSize)
+//    {
+//        return;
+//    }else
+//    {
+//        inComm = clientConnectionc1->readLine();
+//        inComm = inComm.trimmed();
+//        qDebug()<<"after trim receive is"<< inComm;
 
-    }
-    if (inComm.contains("PROC:ID WM", Qt::CaseInsensitive))
-    {
-        //connectHost;
-        return;
-    }
-    else if (commReplyc1.contains(inComm))
-    {
-        outReply.append(commReplyc1.value(inComm)+"\n");
-    }
-    else
-    {
-        outReply.append("\n");
-    }
-    clientConnectionc1->write(outReply);
-}
+//    }
+//    if (inComm.contains("PROC:ID WM", Qt::CaseInsensitive))
+//    {
+//        //connectHost;
+//        return;
+//    }
+//    else if (commReplyc1.contains(inComm))
+//    {
+//        outReply.append(commReplyc1.value(inComm)+"\n");
+//    }
+//    else
+//    {
+//        outReply.append("\n");
+//    }
+//    clientConnectionc1->write(outReply);
+//}
 
 
 
@@ -448,8 +431,6 @@ void Server::replyComm()
 {
     QString inComm;
     QByteArray outReply;
-    static int count=0;
-    qDebug()<<"cout is" <<count++;
     blockSize = 1;
     if (clientConnection->bytesAvailable() < blockSize)
     {
@@ -458,7 +439,14 @@ void Server::replyComm()
     {
         inComm = clientConnection->readAll();
         inComm = inComm.trimmed();
-        qDebug()<<"after trim receive is"<< inComm;
+//        qDebug()<<"<<<<<<<<<<<from chasis after trim receive is"<< inComm;
+//        if (inComm.contains('\n'))
+//        {
+//            qDebug() << "!!!!!!!!!!!!!!!!!!!!!!!!!"<<inComm.indexOf('\n')<< "length"<<inComm.length();
+//        }
+        qDebug() <<"before inComm length is "<<inComm.length();
+        inComm = inComm.right(inComm.length() - inComm.indexOf('\n') - 1);
+        qDebug()<<"after adjust is "<< inComm;
     }
     if (inComm.contains("PROC:ID WM", Qt::CaseInsensitive))
     {
@@ -469,10 +457,12 @@ void Server::replyComm()
     {
         outReply.append(commReply.value(inComm)+"\n");
         clientConnection->write(outReply);
+        clientConnection->flush();
+        qDebug()<<">>>>>>>>>>>from chasis after trim send is"<< outReply;
     }
     else
     {
-        outReply.append("\n");
+        //outReply.append("\n"); don't need to reply
     }
 
 }
@@ -525,8 +515,8 @@ void Server::connectServerError(QAbstractSocket::SocketError err)
 {
     Q_UNUSED(err);
     QMessageBox::critical(this, tr("Test Server"),
-                              tr("Unable to start the server: %1.")
-                              .arg(serverConnection->errorString()));
+                          tr("Unable to start the server: %1.")
+                          .arg(serverConnection->errorString()));
 }
 void Server::serverResponse()
 {
@@ -544,6 +534,7 @@ void Server::serverResponse()
 
 void Server::replyCommCard()
 {
+    cardConnection = qobject_cast<QTcpSocket *>(sender());
     QString inComm;
     QByteArray outReply;
     blockSize = 1;
@@ -554,7 +545,9 @@ void Server::replyCommCard()
     {
         inComm = cardConnection->readAll();
         inComm = inComm.trimmed();
-        qDebug()<<"from card after trim receive is"<< inComm;
+        qDebug() <<"before inComm length is "<<inComm.length();
+        inComm = inComm.right(inComm.length() - inComm.indexOf('\n') - 1);
+        qDebug()<<"after adjust is "<< inComm;
     }
     if (inComm.contains("PROC:ID WM", Qt::CaseInsensitive))
     {
@@ -565,12 +558,17 @@ void Server::replyCommCard()
     {
         outReply.append(cardReply.value(inComm)+"\n");
         cardConnection->write(outReply);
-        qDebug()<<"reply sent"<<cardReply.value(inComm);
+        cardConnection->flush();
+        qDebug()<<">>>>>>>>>>from card after trim reply is"<< outReply;
     }
     else
     {
-        outReply.append("\n");
+        //outReply.append("\n"); don;t need to reply;
     }
 
+
+}
+Server::~Server()
+{
 
 }

@@ -121,6 +121,7 @@ class Server : public QDialog
 
 public:
     Server(QWidget *parent = 0);
+    virtual ~Server();
 
 
 
@@ -128,9 +129,9 @@ public:
 private slots:
     void sessionOpened();
     void setupCon();
-    void setupConc1();
+  //  void setupConc1();
     void replyComm();
-    void replyCommc1();
+ //   void replyCommc1();
     void sendComm();
     void clickSend();
     void connectServerError(QAbstractSocket::SocketError err);
@@ -148,20 +149,18 @@ private:
     QLineEdit *paraComm;
     QTcpServer *tcpServer;
     QTcpServer *tcpCardServer;
-    QTcpServer *tcpServerc1;
+ //   QTcpServer *tcpServerc1;
     QNetworkSession *networkSession;
     QTcpSocket *tcpCard;
     QTcpSocket *clientConnection;
-    QTcpSocket *clientConnectionc1;
+ //   QTcpSocket *clientConnectionc1;
     QTcpSocket *serverConnection;
     QTcpSocket *cardConnection;
     quint8 blockSize;
 
     QHash<QString, QString> commReply;
     QHash<QString, QString> cardReply;
-    QHash<QString, QString> commReplyc1;
-    OA_Profile_t test;
-
+//    QHash<QString, QString> commReplyc1;
     OA_Profile_t testProfile ;
 
 
