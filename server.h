@@ -57,38 +57,7 @@ class QLineEdit;
 class QComboBox;
 QT_END_NAMESPACE
 
-
-/*
- * typedef struct __attribute__((__packed__))
-{
-    bool	laser_source_status;			// laser source status
-    unsigned char    mode;//constant power/current/gain mode
-    float    out_current_min;
-    float   out_current_max;
-    float   gain_min;
-    float   gain_max;
-    float   power_min;
-    float   power_max;
-    float   gain_threshold;
-    float   gain_accuracy;
-    float   output_power;
-    float   output_power_threshold;
-    float   output_power_accuracy;
-    bool    ALS_enable;
-    float   LOS_threshold;
-    float   optical_power_value;
-    float   optical_output_power_value;
-    float   wav_length;
-    float   ATI;
-
-
-}OA_Profile_t ;
-
-//! [0]
->>>>>>> 90ba0e9c01b2d792fbd3717ee1ea9a12007f2cdf
-*/
-
-typedef struct __attribute__((__packed__))
+typedef struct
 {
     bool	laser_source_status;			// laser source status
     unsigned char    mode;                           //constant power/current/gain mode
@@ -128,16 +97,19 @@ public:
 
 private slots:
     void sessionOpened();
-    void setupCon();
-  //  void setupConc1();
-    void replyComm();
- //   void replyCommc1();
-    void sendComm();
-    void clickSend();
+    void chasisSetupCon();
+    void CardSetupCon();
+    void commFromCard();
+    void chasisReplyComm();
+    void sendTestEvent();
+    void cardCommRece();
+
+
+    void sendComm(QString comm);
     void connectServerError(QAbstractSocket::SocketError err);
-    void serverResponse();
-    void setupConCard();
-    void replyCommCard();
+
+
+
 
 private:
     QLabel *statusLabel;
@@ -147,21 +119,20 @@ private:
     QLineEdit *port;
     QComboBox *commandText;
     QLineEdit *paraComm;
-    QTcpServer *tcpServer;
-    QTcpServer *tcpCardServer;
- //   QTcpServer *tcpServerc1;
-    QNetworkSession *networkSession;
-    QTcpSocket *tcpCard;
-    QTcpSocket *clientConnection;
- //   QTcpSocket *clientConnectionc1;
-    QTcpSocket *serverConnection;
-    QTcpSocket *cardConnection;
-    quint8 blockSize;
 
-    QHash<QString, QString> commReply;
+    QTcpServer *chasisServer;
+    QTcpServer *tcpCardServer;
+    QNetworkSession *networkSession;
+    QTcpSocket *chasisConnection;
+    QTcpSocket *cardEventConnection;
+    QTcpSocket *cardCommConnection;
+    QTcpSocket *tempConnection;
+    quint8 blockSize;
+    QHash<QString, QString> chasisReply;
     QHash<QString, QString> cardReply;
-//    QHash<QString, QString> commReplyc1;
+
     OA_Profile_t testProfile ;
+    QString profile;
 
 
 

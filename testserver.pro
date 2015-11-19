@@ -1,9 +1,7 @@
-CONFIG += 	qt release 
-HEADERS       = server.h \
-    serverclient.h
+CONFIG += 	qt debug
+HEADERS       = server.h
 SOURCES       = server.cpp \
-                main.cpp \
-    serverclient.cpp
+                main.cpp
 QT           += network
 
 # install

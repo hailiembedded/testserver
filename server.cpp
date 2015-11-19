@@ -128,10 +128,11 @@ void boolToChar(char * target, boolChange source)
 
 
 Server::Server(QWidget *parent)
-    :   QDialog(parent), tcpServer(0), networkSession(0)
+    :   QDialog(parent), chasisServer(0), networkSession(0)
 {
 
-    QString profile;
+
+
     char profileData[sizeof(OA_Profile_t)*2+1] = {'\0'};
 
     testProfile.laser_source_status = false;			// laser source status
@@ -171,7 +172,6 @@ Server::Server(QWidget *parent)
 
 
 
-
     statusLabel = new QLabel;
     quitButton = new QPushButton(tr("Quit"));
     sendButton = new QPushButton(tr("Send"));
@@ -193,19 +193,9 @@ Server::Server(QWidget *parent)
     commandText->addItem("SDS");
     commandText->addItem("PROC:SHUT");
 
-
-    serverConnection = new QTcpSocket(this);
-    serverConnection->setSocketOption(QAbstractSocket::LowDelayOption, QVariant(1));
-    serverConnection->setSocketOption(QAbstractSocket::KeepAliveOption, QVariant(1));
-
-    connect(serverConnection, SIGNAL(connected()), this, SLOT(sendComm()));
-    connect(serverConnection, SIGNAL(error(QAbstractSocket::SocketError)),this, SLOT(connectServerError(QAbstractSocket::SocketError)));
-    connect(serverConnection, SIGNAL(readyRead()), this, SLOT(serverResponse()));
-    connect(sendButton, SIGNAL(clicked()), this, SLOT(clickSend()));
-
-
     quitButton->setAutoDefault(false);
     sendButton->setAutoDefault(false);
+    connect(sendButton, SIGNAL(clicked()), this, SLOT(sendTestEvent()));
 
     QNetworkConfigurationManager manager;
     if (manager.capabilities() & QNetworkConfigurationManager::NetworkSessionRequired) {
@@ -235,11 +225,8 @@ Server::Server(QWidget *parent)
 
     connect(quitButton, SIGNAL(clicked()), this, SLOT(close()));
 
-    connect(tcpServer, SIGNAL(newConnection()), this, SLOT(setupCon()));
 
-    connect(tcpCardServer, SIGNAL(newConnection()), this, SLOT(setupConCard()));
-
-    //        connect(tcpServerc1, SIGNAL(newConnection()), this, SLOT(setupConc1()));
+    //        connect(chasisServerc1, SIGNAL(newConnection()), this, SLOT(setupConc1()));
 
 
 
@@ -261,23 +248,18 @@ Server::Server(QWidget *parent)
     setWindowTitle(tr("EDFA Simulate Server"));
 
 
-    commReply.insert("*IDN?", "JDSU,MAP-200,888,1.01");
-    commReply.insert(":SYST:IP:LIST?", "0,127.0.0.1, Local");
-    commReply.insert(":ETHERNET:MODE?", "2");
-    commReply.insert(":ETHERNET:NAME?", "Local, MAP20");
-    commReply.insert(":ETHERNET:PROPERTY? 0", "Local,127.0.0.1,255.255.255.0,127.0.0.1,Test,127.0.0.1,127.0.0.1");
-    commReply.insert(":ETHERNET:PROPERTY? 1", "Local,127.0.0.1,255.255.255.0,127.0.0.1,Test,127.0.0.1,127.0.0.1");
-    commReply.insert(":SYST:ETH:MAC?", "AA:BB:CC:DD");
-    commReply.insert("isu:etal:vhard?", "10");
-    commReply.insert("PROC:LIC:STATUS?","VALID");
-    commReply.insert(":PROC:CARD?", "1 136 8801,2 65505 0");
+    chasisReply.insert("*IDN?", "JDSU,MAP-200,888,1.01");
+    chasisReply.insert(":SYST:IP:LIST?", "0,127.0.0.1, Local");
+    chasisReply.insert(":ETHERNET:MODE?", "2");
+    chasisReply.insert(":ETHERNET:NAME?", "Local, MAP20");
+    chasisReply.insert(":ETHERNET:PROPERTY? 0", "Local,127.0.0.1,255.255.255.0,127.0.0.1,Test,127.0.0.1,127.0.0.1");
+    chasisReply.insert(":ETHERNET:PROPERTY? 1", "Local,127.0.0.1,255.255.255.0,127.0.0.1,Test,127.0.0.1,127.0.0.1");
+    chasisReply.insert(":SYST:ETH:MAC?", "AA:BB:CC:DD");
+    chasisReply.insert("isu:etal:vhard?", "10");
+    chasisReply.insert("PROC:LIC:STATUS?","VALID");
+    chasisReply.insert(":PROC:CARD?", "1 136 8801,2 65505 0");
 
 
-
-    //        commReplyc1.insert(":IDN?", "0,FFL,888,1");
-    //        commReplyc1.insert(":config?", "1 2 3 4 5 6 7 8 9 10 11 12 12 13 14");
-    //        commReplyc1.insert(":info?", "1,2,3,4,5,6,7,8,9 10 11 12 12 13 14");
-    //        commReplyc1.insert(":proc:ndev?", "1");
 
     cardReply.insert(":idn?", "pad,EDFA,pad,0.0.1");
     cardReply.insert(":proc:ndev?", "1");
@@ -308,12 +290,12 @@ void Server::sessionOpened()
     }
 
 
-    tcpServer = new QTcpServer(this);
+    chasisServer = new QTcpServer(this);
 
-    if (!tcpServer->listen(QHostAddress::Any, 8000)) {
+    if (!chasisServer->listen(QHostAddress::Any, 8000)) {
         QMessageBox::critical(this, tr("Test Server"),
                               tr("Unable to start the server: %1.")
-                              .arg(tcpServer->errorString()));
+                              .arg(chasisServer->errorString()));
         close();
         return;
     }
@@ -327,11 +309,16 @@ void Server::sessionOpened()
         return;
     }
 
-    //    tcpServerc1 = new QTcpServer(this);
-    //    if (!tcpServerc1->listen(QHostAddress::Any, 8801)) {
+
+
+    connect(chasisServer, SIGNAL(newConnection()), this, SLOT(chasisSetupCon()));
+    connect(tcpCardServer, SIGNAL(newConnection()), this, SLOT(CardSetupCon()));
+
+    //    chasisServerc1 = new QTcpServer(this);
+    //    if (!chasisServerc1->listen(QHostAddress::Any, 8801)) {
     //        QMessageBox::critical(this, tr("Test Server"),
     //                              tr("Unable to start the server: %1.")
-    //                              .arg(tcpServerc1->errorString()));
+    //                              .arg(chasisServerc1->errorString()));
     //        close();
     //        return;
     //    }
@@ -351,164 +338,80 @@ void Server::sessionOpened()
         ipAddress = QHostAddress(QHostAddress::LocalHost).toString();
     statusLabel->setText(tr("The server is running on\n\nIP: %1\nport: %2\n\n"
                             "Run the MAP GUI now.")
-                         .arg(ipAddress).arg(tcpServer->serverPort()));
+                         .arg(ipAddress).arg(chasisServer->serverPort()));
 
 }
 
 
-void Server::setupCon()
+void Server::sendTestEvent()
 {
-    clientConnection = tcpServer->nextPendingConnection();
-    clientConnection->setSocketOption(QAbstractSocket::LowDelayOption, QVariant(1));
-    clientConnection->setSocketOption(QAbstractSocket::KeepAliveOption, QVariant(1));
+    sendComm(profile+'\n');
+}
+void Server::chasisSetupCon()
+{
+    chasisConnection = chasisServer->nextPendingConnection();
+    chasisConnection->setSocketOption(QAbstractSocket::LowDelayOption, QVariant(1));
+    chasisConnection->setSocketOption(QAbstractSocket::KeepAliveOption, QVariant(1));
 
-    connect(clientConnection, SIGNAL(disconnected()),
-            clientConnection, SLOT(deleteLater()));
-    connect(clientConnection, SIGNAL(readyRead()), this, SLOT(replyComm()));
+    connect(chasisConnection, SIGNAL(disconnected()),
+            chasisConnection, SLOT(deleteLater()));
+    connect(chasisConnection, SIGNAL(readyRead()), this, SLOT(chasisReplyComm()));
 
 }
 
 
-void Server::setupConCard()
+void Server::CardSetupCon()
 {
     static int count = 0;
-    cardConnection = tcpCardServer->nextPendingConnection();
-    cardConnection->setSocketOption(QAbstractSocket::LowDelayOption, QVariant(1));
-    cardConnection->setSocketOption(QAbstractSocket::KeepAliveOption, QVariant(1));
+    tempConnection = tcpCardServer->nextPendingConnection();
+    tempConnection->setSocketOption(QAbstractSocket::LowDelayOption, QVariant(1));
+    tempConnection->setSocketOption(QAbstractSocket::KeepAliveOption, QVariant(1));
 
-    connect(cardConnection, SIGNAL(disconnected()),
-            cardConnection, SLOT(deleteLater()));
-    connect(cardConnection, SIGNAL(readyRead()), this, SLOT(replyCommCard()));
+    connect(tempConnection, SIGNAL(disconnected()),
+            tempConnection, SLOT(deleteLater()));
+    connect(tempConnection, SIGNAL(readyRead()), this, SLOT(commFromCard()));
     qDebug() << "setup Card "<< ++count;
 }
 
-//void Server::setupConc1()
-//{
-//    clientConnectionc1 = tcpServerc1->nextPendingConnection();
-//    clientConnectionc1->setSocketOption(QAbstractSocket::LowDelayOption, QVariant(1));
-//    clientConnectionc1->setSocketOption(QAbstractSocket::KeepAliveOption, QVariant(1));
-
-//    connect(clientConnectionc1, SIGNAL(disconnected()),
-//            clientConnectionc1, SLOT(deleteLater()));
-//    connect(clientConnectionc1, SIGNAL(readyRead()), this, SLOT(replyCommc1()));
-//    qDebug()<<"card connected";
-
-//}
-//void Server::replyCommc1()
-//{
-//    QString inComm;
-//    QByteArray outReply;
-//    blockSize = 1;
-//    if (clientConnectionc1->bytesAvailable() < blockSize)
-//    {
-//        return;
-//    }else
-//    {
-//        inComm = clientConnectionc1->readLine();
-//        inComm = inComm.trimmed();
-//        qDebug()<<"after trim receive is"<< inComm;
-
-//    }
-//    if (inComm.contains("PROC:ID WM", Qt::CaseInsensitive))
-//    {
-//        //connectHost;
-//        return;
-//    }
-//    else if (commReplyc1.contains(inComm))
-//    {
-//        outReply.append(commReplyc1.value(inComm)+"\n");
-//    }
-//    else
-//    {
-//        outReply.append("\n");
-//    }
-//    clientConnectionc1->write(outReply);
-//}
 
 
-
-void Server::replyComm()
+void Server::chasisReplyComm()
 {
     QString inComm;
     QByteArray outReply;
     blockSize = 1;
-    if (clientConnection->bytesAvailable() < blockSize)
+    if (chasisConnection->bytesAvailable() < blockSize)
     {
         return;
     }else
     {
-        inComm = clientConnection->readAll();
-        inComm = inComm.trimmed();
-//        qDebug()<<"<<<<<<<<<<<from chasis after trim receive is"<< inComm;
-//        if (inComm.contains('\n'))
-//        {
-//            qDebug() << "!!!!!!!!!!!!!!!!!!!!!!!!!"<<inComm.indexOf('\n')<< "length"<<inComm.length();
-//        }
-        qDebug() <<"before inComm length is "<<inComm.length();
-        inComm = inComm.right(inComm.length() - inComm.indexOf('\n') - 1);
-        qDebug()<<"after adjust is "<< inComm;
-    }
-    if (inComm.contains("PROC:ID WM", Qt::CaseInsensitive))
-    {
-        //connectHost;
-        return;
-    }
-    else if (commReply.contains(inComm))
-    {
-        outReply.append(commReply.value(inComm)+"\n");
-        clientConnection->write(outReply);
-        clientConnection->flush();
-        qDebug()<<">>>>>>>>>>>from chasis after trim send is"<< outReply;
-    }
-    else
-    {
-        //outReply.append("\n"); don't need to reply
+
+        while (chasisConnection->canReadLine())
+        {
+            inComm = chasisConnection->readLine();
+            qDebug() << "chasis command"<<inComm;
+            inComm = inComm.trimmed();
+            if (chasisReply.contains(inComm))
+            {
+                outReply.append(chasisReply.value(inComm)+"\n");
+                chasisConnection->write(outReply);
+                chasisConnection->flush();
+                qDebug()<<">>>>>>>>>>>from chasis after trim send is"<< outReply;
+            }
+        }
     }
 
 }
 
-void Server::clickSend()
-{
-    if ((QAbstractSocket::ConnectedState == serverConnection->state()) && (port->text().trimmed().toInt() == serverConnection->peerPort()))
-    {
-
-        sendComm();
-    }
-    else
-    {
-        serverConnection->abort();
-        serverConnection->connectToHost(ip->text().trimmed(), port->text().toInt(), QIODevice::ReadWrite);
-
-    }
-
-
-}
-void Server::sendComm()
+void Server::sendComm(QString comm)
 {
     QByteArray sendComm;
 
-    QDataStream out(&sendComm, QIODevice::ReadWrite);
+    sendComm.append(comm);
 
+    cardEventConnection->write(sendComm);
+    cardEventConnection->flush();
 
-    if ("888" == paraComm->text())
-    {
-        sendComm.append(commandText->currentText()+"\n");
-        //out << commandText->currentText();
-    }
-    else
-    {
-        sendComm.append(commandText->currentText() + " "+paraComm->text().trimmed());
-    }
-    if ((QAbstractSocket::ConnectedState == serverConnection->state()) && (port->text().trimmed().toInt() == serverConnection->peerPort()))
-    {
-        serverConnection->write(sendComm);
-        serverConnection->flush();
-    }
-    else
-    {
-        //connection didn't setup
-
-    }
 }
 
 void Server::connectServerError(QAbstractSocket::SocketError err)
@@ -516,57 +419,51 @@ void Server::connectServerError(QAbstractSocket::SocketError err)
     Q_UNUSED(err);
     QMessageBox::critical(this, tr("Test Server"),
                           tr("Unable to start the server: %1.")
-                          .arg(serverConnection->errorString()));
-}
-void Server::serverResponse()
-{
-    QDataStream in(serverConnection);
-    QString serverReply,temp;
-
-
-    while (!in.atEnd()){
-        in >> temp;
-        serverReply += temp;
-    }
-
-    qDebug()<<"Server reply is "<< serverReply;
+                          .arg(chasisConnection->errorString()));
 }
 
-void Server::replyCommCard()
+void Server::commFromCard()
 {
-    cardConnection = qobject_cast<QTcpSocket *>(sender());
+    tempConnection = qobject_cast<QTcpSocket *>(sender());
     QString inComm;
     QByteArray outReply;
     blockSize = 1;
-    if (cardConnection->bytesAvailable() < blockSize)
+    if (tempConnection->bytesAvailable() < blockSize)
     {
         return;
     }else
     {
-        inComm = cardConnection->readAll();
-        inComm = inComm.trimmed();
-        qDebug() <<"before inComm length is "<<inComm.length();
-        inComm = inComm.right(inComm.length() - inComm.indexOf('\n') - 1);
-        qDebug()<<"after adjust is "<< inComm;
-    }
-    if (inComm.contains("PROC:ID WM", Qt::CaseInsensitive))
-    {
-        //connectHost;
-        return;
-    }
-    else if (cardReply.contains(inComm))
-    {
-        outReply.append(cardReply.value(inComm)+"\n");
-        cardConnection->write(outReply);
-        cardConnection->flush();
-        qDebug()<<">>>>>>>>>>from card after trim reply is"<< outReply;
-    }
-    else
-    {
-        //outReply.append("\n"); don;t need to reply;
+
+        while (tempConnection->canReadLine())
+        {
+            inComm = tempConnection->readLine();
+            inComm = inComm.trimmed();
+            qDebug() << "%%%%%%%%%%%%%"<<inComm;
+            if (inComm == ":proc:gui:command")
+            {
+
+                cardCommConnection = tempConnection;
+                tempConnection->disconnect(SIGNAL(readyRead()));
+                connect(cardCommConnection, SIGNAL(readyRead()), this, SLOT(cardCommRece()));
+                qDebug() <<"command seting";
+
+            }
+            else if (inComm == ":proc:gui:event")
+            {
+                cardEventConnection = tempConnection;
+                tempConnection->disconnect(SIGNAL(readyRead()));
+                qDebug() <<"event seting";
+
+            }
+
+        }
     }
 
+}
 
+void Server::cardCommRece()
+{
+    qDebug() <<"something receive form command channel";
 }
 Server::~Server()
 {
