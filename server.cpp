@@ -60,18 +60,43 @@ typedef union boolChange
     unsigned char fchar;
 }boolChange;
 
-typedef union wholeChange
+typedef union cardInfoUnion
 {
-    unsigned char fchar[sizeof(OA_Profile_t)*2];
-    OA_Profile_t fOAProfile;
+    unsigned char fchar[sizeof(Edfa_Card_Info_t)*2];
+    Edfa_Card_Info_t source;
 
-}wholeChange;
+}cardInfo;
 
+typedef union devProUnion
+{
+    unsigned char fchar[sizeof(Edfa_Dev_Profile_t)*2];
+    Edfa_Dev_Profile_t source;
 
-void profileTochar(char * target, wholeChange source)
+}devPro;
+
+void InfoTochar(char * target, cardInfo source)
 {
     char temp = 0;
-    for (unsigned int i =0; i<sizeof(OA_Profile_t);i++)
+    for (unsigned int i =0; i<sizeof(Edfa_Card_Info_t);i++)
+    {
+        temp =source.fchar[i]&0x0F;
+        if (temp>=0 && temp<=9)
+            target[i*2+1] = temp+'0';
+        else
+            target[i*2+1] = temp - 10 + 'A';
+        temp = source.fchar[i]>>4;
+        if (temp>=0 && temp<=9)
+            target[i*2] = temp+'0';
+        else
+            target[i*2] = temp - 10 + 'A';
+    }
+
+}
+
+void ProfileTochar(char * target, devPro source)
+{
+    char temp = 0;
+    for (unsigned int i =0; i<sizeof(Edfa_Dev_Profile_t);i++)
     {
         temp =source.fchar[i]&0x0F;
         if (temp>=0 && temp<=9)
@@ -131,43 +156,112 @@ Server::Server(QWidget *parent)
     :   QDialog(parent), chasisServer(0), networkSession(0)
 {
 
+    qDebug() <<"sizeof Edfa_Dev_Profile_t infor EDFA"<<sizeof(deviceProfile[0]);
+    qDebug() <<"align profile EDFA"<<__alignof__(deviceProfile[0]);
 
 
-    char profileData[sizeof(OA_Profile_t)*2+1] = {'\0'};
-
-    testProfile.laser_source_status = false;			// laser source status
-    testProfile.mode = 3;//constant power/current/gain mode
-    testProfile.out_current_min = -100.5;
-    testProfile.out_current_max = 100.5;
-    testProfile.gain_min = -10.5;
-    testProfile.gain_max = 10.5;
-    testProfile.power_min = -23;
-    testProfile.power_max = 27.8;
-    testProfile.gain_threshold = 439.9;
-    testProfile.gain_accuracy = 34.50;
-    testProfile.output_power = 14.5;
-    testProfile.output_power_threshold = 120.56;
-    testProfile.output_power_accuracy = 12.6;
-    testProfile.ALS_enable = true;
-    testProfile.LOS_threshold = 98.9;
-    testProfile.optical_power_value = 369.5;
-    testProfile.optical_output_power_value = 96.7;
-    testProfile.wav_length = 100.5;
-    testProfile.ATI = 125.9;
+    memcpy(cardInfo.date, "20151118", 8);
+    memcpy(cardInfo.serial_num, "112345678901234567890", 20);
+    memcpy(cardInfo.part_num, "0123456789012345678901234", 24);
+    memcpy(cardInfo.fw_rev, "01234567", 8);
+    memcpy(cardInfo.laser_modu_rev, "01234567", 8);
+    memcpy(cardInfo.ocm_modu_rev, "01234567", 8);
+    memcpy(cardInfo.hw_rev, "012346670", 8);
+    memcpy(cardInfo.desp,"EDFA *** ", 32);
+    cardInfo.vrid = 01;
+    cardInfo.ndev = 02;
 
 
+    QString tempString;
+    char InfoData[sizeof(Edfa_Card_Info_t)*2 + 1] = {'\0'};
+    cardInfoUnion tempInfo;
+    tempInfo.source = cardInfo;
+    InfoTochar(InfoData, tempInfo);
 
-    wholeChange testWhole;
-    testWhole.fOAProfile = testProfile;
-    profileTochar(profileData, testWhole);
+    tempString.setNum(CARD_CONFIGQ_OPCODE, 16);
+    cardInfoStr.append(tempString.rightJustified(4, '0'));
+    tempString.setNum(sizeof(Edfa_Card_Info_t), 16);
+    cardInfoStr.append(tempString.rightJustified(4, '0'));
+    cardInfoStr.append("00");
+    cardInfoStr.append(InfoData);
 
-    qDebug() << "strlen (profileDate)"<< strlen(profileData);
-    qDebug() << "sizeof (profileDate)"<< sizeof(OA_Profile_t);
-    qDebug() << "sizeof (whole)"<< sizeof(wholeChange);
+    qDebug() << "Info filestring"<< cardInfoStr <<"card info length:"<<sizeof(Edfa_Card_Info_t);
 
-    profile.append("1234567890");
 
-    profile.append(profileData);
+
+
+
+    deviceProfile[0].gain_min           = 0;					// min gain
+    deviceProfile[0].gain_max           = 50;					// max gain
+    deviceProfile[0].output_current_min = 0;			// min output current
+    deviceProfile[0].output_current_max = 2000;			// max output current
+    deviceProfile[0].input_power_min    = -40;			// min input power
+    deviceProfile[0].input_power_max    = 5;			// max input power
+    deviceProfile[0].output_power_min   = 5;			// min output power
+    deviceProfile[0].output_power_max   = 41;			// max output power
+    deviceProfile[0].gsa_min            = -5;					// min gain seek accuracy
+    deviceProfile[0].gsa_max            = 40;					// max gain seek accuracy
+    deviceProfile[0].ght_min            =0;					// min gain hold threshold
+    deviceProfile[0].ght_max            =30;					// max gain hold threshold
+    deviceProfile[0].psa_min            =-5;					// min power seek accuracy
+    deviceProfile[0].psa_max            =35;					// max power seek accuracy
+    deviceProfile[0].pht_min            =0;					// min power hold threshold
+    deviceProfile[0].pht_max            =234;					// max power hold threshold
+    deviceProfile[0].los_limit_min      =12.5;				// min loss output shutdown
+    deviceProfile[0].los_limit_max      =289.4;				// max loss output shutdown
+    deviceProfile[0].atime_min          =12.5;					// min atime
+    deviceProfile[0].atime_max          =145;					// max atime
+    deviceProfile[0].wav_min            =180;					// min wavelength
+    deviceProfile[0].wav_max            =190;					// max wavelength
+
+    deviceProfile[0].current_output     =52.6;				// current output
+    deviceProfile[0].current_gain       =24.5;				// current gain in constant current mode
+    deviceProfile[0].current_power      =45;				// current power in constant current mode
+    deviceProfile[0].gain_output        =16.5;				// gain output in constant power mode
+    deviceProfile[0].gain_seek_accuracy =10;			// gain seek accuracy
+    deviceProfile[0].gain_hold_threshold=25;		// gain hold threshold
+    deviceProfile[0].power_output       =52;				// power output in constant power mode
+    deviceProfile[0].power_seek_accuracy=69;		// power seek accuracy
+    deviceProfile[0].power_hold_threshold=65;		// power hold threshold
+    deviceProfile[0].los_limit_value    =58.9;			// los limit value
+    deviceProfile[0].atime              =12;						// atime
+    deviceProfile[0].wavelength         =100.5;					// wavelength
+
+    deviceProfile[0].source_mode        =0;				//0:power mode, 1:current mode, 2:gain mode
+    deviceProfile[0].input_detector_presence=1;	// input ocm
+    deviceProfile[0].output_detector_presence=1;	// output ocm
+    deviceProfile[0].agc_presence       =1;				// agc control status
+
+    deviceProfile[0].als_enable_value   =1;			// 1: enable 0:disable
+    deviceProfile[0].los_state_value    =1;			// 1: shutdown status, 0 not
+//    deviceProfile[0].source_mode_value  =1;				//0:power mode, 1:current mode, 2:gain mode
+//    deviceProfile[0].rsvd2              =0;
+//    deviceProfile[0].rsvd3              =0;
+
+
+
+    char devProfileData[sizeof(Edfa_Dev_Profile_t)*2 + 1] = {'\0'};
+    devProUnion tempProfile;
+    tempProfile.source = deviceProfile[0];
+    ProfileTochar(devProfileData, tempProfile);
+
+    tempString.setNum(DEV_PROFILEQ_OPCODE, 16);
+    deviceProfileStr[0].append(tempString.rightJustified(4, '0'));
+    tempString.setNum(sizeof(Edfa_Dev_Profile_t), 16);
+    deviceProfileStr[0].append(tempString.rightJustified(4, '0'));
+    deviceProfileStr[0].append("01");
+    deviceProfileStr[0].append(devProfileData);
+
+
+    qDebug() << "deviceProfilestring"<< deviceProfileStr[0]<<"profile length:"<<sizeof(Edfa_Dev_Profile_t);
+
+
+
+
+
+
+
+
 
 
 
@@ -345,7 +439,7 @@ void Server::sessionOpened()
 
 void Server::sendTestEvent()
 {
-    sendComm(profile+'\n');
+    sendEvent(profile+'\n');
 }
 void Server::chasisSetupCon()
 {
@@ -403,11 +497,11 @@ void Server::chasisReplyComm()
 
 }
 
-void Server::sendComm(QString comm)
+void Server::sendEvent(QString comm)
 {
     QByteArray sendComm;
 
-    sendComm.append(comm);
+    sendComm.append(comm+'\n');
 
     cardEventConnection->write(sendComm);
     cardEventConnection->flush();
@@ -463,9 +557,23 @@ void Server::commFromCard()
 
 void Server::cardCommRece()
 {
+    QString inComm;
     qDebug() <<"something receive form command channel";
+    while(cardCommConnection->canReadLine())
+    {
+        inComm = cardCommConnection->readLine();
+        inComm = inComm.trimmed();
+        if (inComm.contains("rcl"))
+        {
+            sendEvent(cardInfoStr);
+            sendEvent(deviceProfileStr[0]);
+        }
+    }
+
+
 }
 Server::~Server()
 {
+
 
 }

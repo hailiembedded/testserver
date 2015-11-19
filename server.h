@@ -1,4 +1,3 @@
-#pragma pack(4)
 /****************************************************************************
 **
 ** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
@@ -46,6 +45,8 @@
 #include <QHash>
 #include<QtNetwork>
 #include <QtGui>
+#include "dragon/edfa_common.h"
+#include "dragon/edfa_opcode.h"
 
 QT_BEGIN_NAMESPACE
 class QLabel;
@@ -105,7 +106,7 @@ private slots:
     void cardCommRece();
 
 
-    void sendComm(QString comm);
+    void sendEvent(QString comm);
     void connectServerError(QAbstractSocket::SocketError err);
 
 
@@ -133,6 +134,10 @@ private:
 
     OA_Profile_t testProfile ;
     QString profile;
+    QString cardInfoStr;
+    QString deviceProfileStr[2];
+    Edfa_Card_Info_t cardInfo;
+    Edfa_Dev_Profile_t deviceProfile[2] ;
 
 
 
