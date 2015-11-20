@@ -159,15 +159,15 @@ Server::Server(QWidget *parent)
     qDebug() <<"sizeof Edfa_Dev_Profile_t infor EDFA"<<sizeof(deviceProfile[0]);
     qDebug() <<"align profile EDFA"<<__alignof__(deviceProfile[0]);
 
-
+    memcpy(cardInfo.name, "EDFA\0", 20);
     memcpy(cardInfo.date, "20151118", 8);
     memcpy(cardInfo.serial_num, "112345678901234567890", 20);
-    memcpy(cardInfo.part_num, "0123456789012345678901234", 24);
+    memcpy(cardInfo.part_num, "0123456789012345678901230", 24);
     memcpy(cardInfo.fw_rev, "01234567", 8);
     memcpy(cardInfo.laser_modu_rev, "01234567", 8);
     memcpy(cardInfo.ocm_modu_rev, "01234567", 8);
     memcpy(cardInfo.hw_rev, "012346670", 8);
-    memcpy(cardInfo.desp,"EDFA *** ", 32);
+    memcpy(cardInfo.desp,"EDFA *** \0", 32);
     cardInfo.vrid = 01;
     cardInfo.ndev = 02;
 
@@ -545,7 +545,7 @@ void Server::commFromCard()
             else if (inComm.contains("rcl"))
             {
                 sendEvent(cardInfoStr);
-                sendEvent(deviceProfileStr[0]);
+            //    sendEvent(deviceProfileStr[0]);
             }
             else if (inComm == ":proc:gui:event")
             {
@@ -571,7 +571,7 @@ void Server::cardCommRece()
         if (inComm.contains("rcl"))
         {
             sendEvent(cardInfoStr);
-            sendEvent(deviceProfileStr[0]);
+         //   sendEvent(deviceProfileStr[0]);
         }
     }
 
