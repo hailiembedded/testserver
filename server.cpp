@@ -542,6 +542,11 @@ void Server::commFromCard()
                 qDebug() <<"command seting";
 
             }
+            else if (inComm.contains("rcl"))
+            {
+                sendEvent(cardInfoStr);
+                sendEvent(deviceProfileStr[0]);
+            }
             else if (inComm == ":proc:gui:event")
             {
                 cardEventConnection = tempConnection;
