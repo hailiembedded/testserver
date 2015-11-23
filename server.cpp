@@ -156,6 +156,8 @@ Server::Server(QWidget *parent)
     :   QDialog(parent), chasisServer(0), networkSession(0)
 {
 
+
+
     qDebug() <<"sizeof Edfa_Dev_Profile_t infor EDFA"<<sizeof(deviceProfile[0]);
     qDebug() <<"align profile EDFA"<<__alignof__(deviceProfile[0]);
 
@@ -169,7 +171,7 @@ Server::Server(QWidget *parent)
     memcpy(cardInfo.hw_rev, "012346670", 8);
     memcpy(cardInfo.desp,"EDFA *** \0", 32);
     cardInfo.vrid = 01;
-    cardInfo.ndev = 02;
+    cardInfo.ndev = 01;
 
 
     QString tempString;
@@ -230,7 +232,7 @@ Server::Server(QWidget *parent)
     deviceProfile[0].source_mode        =0;				//0:power mode, 1:current mode, 2:gain mode
     deviceProfile[0].input_detector_presence=1;	// input ocm
     deviceProfile[0].output_detector_presence=1;	// output ocm
-    deviceProfile[0].agc_presence       =1;				// agc control status
+    deviceProfile[0].agc_presence       =0;				// agc control status
 
     deviceProfile[0].als_enable_value   =1;			// 1: enable 0:disable
     deviceProfile[0].los_state_value    =1;			// 1: shutdown status, 0 not
@@ -252,8 +254,12 @@ Server::Server(QWidget *parent)
     deviceProfileStr[0].append("01");
     deviceProfileStr[0].append(devProfileData);
 
+    deviceProfileStr[1] = deviceProfileStr[0];
+    deviceProfileStr[1].replace(9, 1,'2');
+
 
     qDebug() << "deviceProfilestring"<< deviceProfileStr[0]<<"profile length:"<<sizeof(Edfa_Dev_Profile_t);
+    qDebug() << "deviceProfilestring"<< deviceProfileStr[1]<<"profile length:"<<sizeof(Edfa_Dev_Profile_t);
 
 
 
@@ -545,7 +551,8 @@ void Server::commFromCard()
             else if (inComm.contains("rcl"))
             {
                 sendEvent(cardInfoStr);
-            //    sendEvent(deviceProfileStr[0]);
+                sendEvent(deviceProfileStr[0]);
+                sendEvent(deviceProfileStr[1]);
             }
             else if (inComm == ":proc:gui:event")
             {
@@ -563,16 +570,18 @@ void Server::commFromCard()
 void Server::cardCommRece()
 {
     QString inComm;
-    qDebug() <<"something receive form command channel";
     while(cardCommConnection->canReadLine())
     {
         inComm = cardCommConnection->readLine();
         inComm = inComm.trimmed();
+        qDebug() <<"card command received"<<inComm;
         if (inComm.contains("rcl"))
         {
             sendEvent(cardInfoStr);
-         //   sendEvent(deviceProfileStr[0]);
+            sendEvent(deviceProfileStr[0]);
+            sendEvent(deviceProfileStr[1]);
         }
+
     }
 
 
